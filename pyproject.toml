@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "dockerlens"
+name = "dockerlens-py"
 version = "0.1.0"
 description = "Programmatic Docker image layer analysis, auditing, and diffing for Python"
 readme = "README.md"
