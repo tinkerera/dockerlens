@@ -1,7 +1,7 @@
 # dockerlens
 
-[![PyPI version](https://img.shields.io/pypi/v/dockerlens)](https://pypi.org/project/dockerlens/)
-[![Python versions](https://img.shields.io/pypi/pyversions/dockerlens)](https://pypi.org/project/dockerlens/)
+[![PyPI version](https://img.shields.io/pypi/v/dockerlens-py)](https://pypi.org/project/dockerlens-py/)
+[![Python versions](https://img.shields.io/pypi/pyversions/dockerlens-py)](https://pypi.org/project/dockerlens-py/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Programmatic Docker image layer analysis, auditing, and diffing for Python.**
