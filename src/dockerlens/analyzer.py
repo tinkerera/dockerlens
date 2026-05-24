@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime, timezone
+from typing import Any
 
 import docker
 import docker.errors
@@ -44,6 +45,9 @@ class ImageAnalyzer:
         self._image_name = image
         self._remote = remote
 
+        self._attrs: dict[str, Any]
+        self._history: list[dict[str, Any]]
+
         if remote:
             self._attrs, self._history = fetch_remote_image_data(image)
         else:
@@ -70,8 +74,8 @@ class ImageAnalyzer:
                 ) from exc
 
             # Cache inspect data and history
-            self._attrs: dict = self._image.attrs  # type: ignore[type-arg]
-            self._history: list[dict] = self._image.history()  # type: ignore[type-arg]
+            self._attrs = self._image.attrs
+            self._history = self._image.history()
 
     # ------------------------------------------------------------------
     # Public API
