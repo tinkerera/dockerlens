@@ -274,6 +274,92 @@ class TestManyLayers:
         assert len(results) == 0
 
 
+class TestCurlBash:
+    """Tests for the CURL_BASH_PATTERN rule."""
+
+    def test_fires_on_curl_bash(self) -> None:
+        history = [
+            {"CreatedBy": "/bin/sh -c curl -sSL http://example.com | bash", "Size": 100, "Created": 0},
+        ]
+        engine = _make_engine(history)
+        results = engine._check_curl_bash()
+        assert len(results) == 1
+        assert results[0].rule_id == "CURL_BASH_PATTERN"
+
+    def test_does_not_fire_on_curl_only(self) -> None:
+        history = [
+            {"CreatedBy": "/bin/sh -c curl -O file.txt", "Size": 100, "Created": 0},
+        ]
+        engine = _make_engine(history)
+        results = engine._check_curl_bash()
+        assert len(results) == 0
+
+
+class TestExposeSsh:
+    """Tests for the EXPOSED_SSH_PORT rule."""
+
+    def test_fires_on_expose_22(self) -> None:
+        image_data = {
+            "Config": {"ExposedPorts": {"22/tcp": {}}},
+            "RepoTags": ["app:latest"]
+        }
+        engine = AuditEngine(image_data, [])
+        results = engine._check_expose_ssh()
+        assert len(results) == 1
+        assert results[0].rule_id == "EXPOSED_SSH_PORT"
+
+    def test_does_not_fire_on_other_ports(self) -> None:
+        image_data = {
+            "Config": {"ExposedPorts": {"80/tcp": {}}},
+            "RepoTags": ["app:latest"]
+        }
+        engine = AuditEngine(image_data, [])
+        results = engine._check_expose_ssh()
+        assert len(results) == 0
+
+
+class TestApkCache:
+    """Tests for the APK_NO_CACHE rule."""
+
+    def test_fires_on_apk_add_without_cache(self) -> None:
+        history = [
+            {"CreatedBy": "/bin/sh -c apk add curl", "Size": 100, "Created": 0},
+        ]
+        engine = _make_engine(history)
+        results = engine._check_apk_cache()
+        assert len(results) == 1
+        assert results[0].rule_id == "APK_NO_CACHE"
+
+    def test_does_not_fire_with_no_cache(self) -> None:
+        history = [
+            {"CreatedBy": "/bin/sh -c apk add --no-cache curl", "Size": 100, "Created": 0},
+        ]
+        engine = _make_engine(history)
+        results = engine._check_apk_cache()
+        assert len(results) == 0
+
+
+class TestPipCache:
+    """Tests for the PIP_NO_CACHE_DIR rule."""
+
+    def test_fires_on_pip_install_without_cache_dir(self) -> None:
+        history = [
+            {"CreatedBy": "/bin/sh -c pip install requests", "Size": 100, "Created": 0},
+        ]
+        engine = _make_engine(history)
+        results = engine._check_pip_cache()
+        assert len(results) == 1
+        assert results[0].rule_id == "PIP_NO_CACHE_DIR"
+
+    def test_does_not_fire_with_no_cache_dir(self) -> None:
+        history = [
+            {"CreatedBy": "/bin/sh -c pip install --no-cache-dir requests", "Size": 100, "Created": 0},
+        ]
+        engine = _make_engine(history)
+        results = engine._check_pip_cache()
+        assert len(results) == 0
+
+
 class TestRunAll:
     """Integration test for AuditEngine.run_all()."""
 

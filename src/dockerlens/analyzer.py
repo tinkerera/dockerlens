@@ -14,8 +14,9 @@ import docker.errors
 
 from dockerlens.audit import AuditEngine
 from dockerlens.diff import DiffEngine
-from dockerlens.exceptions import DockerNotAvailable, ImageNotFound
+from dockerlens.exceptions import DockerNotAvailable, ImageNotFound, RemoteRegistryError
 from dockerlens.models import AuditResult, DiffEntry, ImageReport, Layer
+from dockerlens.remote import fetch_remote_image_data
 from dockerlens.renderer import render_audit, render_diff, render_layers
 
 
@@ -38,33 +39,38 @@ class ImageAnalyzer:
         self,
         image: str,
         docker_client: docker.DockerClient | None = None,
+        remote: bool = False,
     ) -> None:
         self._image_name = image
+        self._remote = remote
 
-        # Connect to the Docker daemon
-        if docker_client is not None:
-            self._client = docker_client
+        if remote:
+            self._attrs, self._history = fetch_remote_image_data(image)
         else:
+            # Connect to the Docker daemon
+            if docker_client is not None:
+                self._client = docker_client
+            else:
+                try:
+                    self._client = docker.from_env()
+                except docker.errors.DockerException as exc:
+                    raise DockerNotAvailable(
+                        "Could not connect to the Docker daemon. Is Docker running?"
+                    ) from exc
+
+            # Fetch the image object
             try:
-                self._client = docker.from_env()
+                self._image = self._client.images.get(image)
+            except docker.errors.ImageNotFound as exc:
+                raise ImageNotFound(image) from exc
             except docker.errors.DockerException as exc:
                 raise DockerNotAvailable(
-                    "Could not connect to the Docker daemon. Is Docker running?"
+                    f"Lost connection to the Docker daemon while fetching image {image!r}."
                 ) from exc
 
-        # Fetch the image object
-        try:
-            self._image = self._client.images.get(image)
-        except docker.errors.ImageNotFound as exc:
-            raise ImageNotFound(image) from exc
-        except docker.errors.DockerException as exc:
-            raise DockerNotAvailable(
-                f"Lost connection to the Docker daemon while fetching image {image!r}."
-            ) from exc
-
-        # Cache inspect data and history
-        self._attrs: dict = self._image.attrs  # type: ignore[type-arg]
-        self._history: list[dict] = self._image.history()  # type: ignore[type-arg]
+            # Cache inspect data and history
+            self._attrs: dict = self._image.attrs  # type: ignore[type-arg]
+            self._history: list[dict] = self._image.history()  # type: ignore[type-arg]
 
     # ------------------------------------------------------------------
     # Public API
@@ -170,7 +176,11 @@ class ImageAnalyzer:
 
         Raises:
             ImageNotFound: If the *other* image is not present locally.
+            DockerLensError: If called on a remotely fetched image.
         """
+        if self._remote:
+            raise RemoteRegistryError("diff command requires local images. Remote scanning is only for metadata/audit.")
+            
         try:
             other_image = self._client.images.get(other)
         except docker.errors.ImageNotFound as exc:

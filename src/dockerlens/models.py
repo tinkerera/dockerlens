@@ -111,3 +111,72 @@ class ImageReport:
             A JSON string representation of the report.
         """
         return json.dumps(self.to_dict(), indent=indent)
+
+    def to_markdown(self) -> str:
+        """Serialize to a Markdown formatted string.
+        
+        Returns:
+            A string containing Markdown headers and tables.
+        """
+        lines = [
+            f"# Image Report: `{self.image_name}`",
+            f"- **Image ID:** `{self.image_id}`",
+            f"- **Total Size:** {self.total_size_bytes} bytes",
+            "",
+            "## Audit Results"
+        ]
+        if not self.audit_results:
+            lines.append("No issues found! ✅")
+        else:
+            lines.append("| Severity | Rule | Message | Layer |")
+            lines.append("|---|---|---|---|")
+            for r in self.audit_results:
+                layer_str = str(r.layer_index) if r.layer_index is not None else "-"
+                lines.append(f"| **{r.severity}** | `{r.rule_id}` | {r.message} | {layer_str} |")
+        
+        lines.append("")
+        lines.append("## Layers")
+        lines.append("| Index | Size | Command |")
+        lines.append("|---|---|---|")
+        for layer in self.layers:
+            # truncate command if it's too long for markdown table
+            cmd = layer.command.replace('|', '\\|')
+            if len(cmd) > 100:
+                cmd = cmd[:97] + "..."
+            lines.append(f"| {layer.index} | {layer.size_human} | `{cmd}` |")
+            
+        return "\\n".join(lines) + "\\n"
+
+    def to_html(self) -> str:
+        """Serialize to an HTML formatted string.
+        
+        Returns:
+            A string containing HTML representation of the report.
+        """
+        html = [
+            f"<h1>Image Report: <code>{self.image_name}</code></h1>",
+            "<ul>",
+            f"<li><b>Image ID:</b> <code>{self.image_id}</code></li>",
+            f"<li><b>Total Size:</b> {self.total_size_bytes} bytes</li>",
+            "</ul>",
+            "<h2>Audit Results</h2>"
+        ]
+        if not self.audit_results:
+            html.append("<p>No issues found! ✅</p>")
+        else:
+            html.append("<table border='1'><tr><th>Severity</th><th>Rule</th><th>Message</th><th>Layer</th></tr>")
+            for r in self.audit_results:
+                layer_str = str(r.layer_index) if r.layer_index is not None else "-"
+                html.append(f"<tr><td><b>{r.severity}</b></td><td><code>{r.rule_id}</code></td><td>{r.message}</td><td>{layer_str}</td></tr>")
+            html.append("</table>")
+            
+        html.append("<h2>Layers</h2>")
+        html.append("<table border='1'><tr><th>Index</th><th>Size</th><th>Command</th></tr>")
+        for layer in self.layers:
+            cmd = layer.command.replace("<", "&lt;").replace(">", "&gt;")
+            if len(cmd) > 100:
+                cmd = cmd[:97] + "..."
+            html.append(f"<tr><td>{layer.index}</td><td>{layer.size_human}</td><td><code>{cmd}</code></td></tr>")
+        html.append("</table>")
+        
+        return "\\n".join(html) + "\\n"

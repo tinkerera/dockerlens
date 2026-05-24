@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-05-24
+
+### Added
+
+- **Daemonless Remote Registry Scanning**: Added the `--remote` flag to `dockerlens analyze`. You can now scan images directly from Docker Hub without needing a local Docker daemon or pulling the image!
+- Programmatic Python API now supports `ImageAnalyzer(..., remote=True)` to fetch layer metadata via the registry API (`urllib.request`), leaving no footprint on the host machine.
+- **CLI wrapper**: Added `dockerlens` command-line tool with `analyze` and `diff` commands.
+- **Export Formats**: Added `to_markdown()` and `to_html()` methods to `ImageReport`.
+- **New Audit Rules**:
+  - `CURL_BASH_PATTERN` — warns when `curl ... | bash` is used.
+  - `EXPOSED_SSH_PORT` — warns when port 22 is exposed.
+  - `APK_NO_CACHE` — warns when `apk add` is used without `--no-cache`.
+  - `PIP_NO_CACHE_DIR` — warns when `pip install` is used without `--no-cache-dir`.
+
 ## [0.1.0] - 2026-05-24
 
 ### Added

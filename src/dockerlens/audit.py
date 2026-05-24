@@ -50,6 +50,10 @@ class AuditEngine:
         results.extend(self._check_add_instruction())
         results.extend(self._check_secret_patterns())
         results.extend(self._check_many_layers())
+        results.extend(self._check_curl_bash())
+        results.extend(self._check_expose_ssh())
+        results.extend(self._check_apk_cache())
+        results.extend(self._check_pip_cache())
         return results
 
     # ------------------------------------------------------------------
@@ -222,3 +226,71 @@ class AuditEngine:
                 )
             ]
         return []
+
+    def _check_curl_bash(self) -> list[AuditResult]:
+        """CURL_BASH_PATTERN — warning if curl/wget is piped to bash/sh."""
+        results: list[AuditResult] = []
+        reversed_history = list(reversed(self.history))
+        for i, entry in enumerate(reversed_history):
+            created_by: str = entry.get("CreatedBy", "").lower()
+            if ("curl" in created_by or "wget" in created_by) and ("| bash" in created_by or "| sh" in created_by):
+                results.append(
+                    AuditResult(
+                        rule_id="CURL_BASH_PATTERN",
+                        severity="WARNING",
+                        message=(
+                            f"Layer {i} pipes curl/wget to bash or sh. "
+                            "This is a security risk and hurts reproducibility."
+                        ),
+                        layer_index=i,
+                    )
+                )
+        return results
+
+    def _check_expose_ssh(self) -> list[AuditResult]:
+        """EXPOSED_SSH_PORT — warning if SSH port 22 is exposed."""
+        config = self.image_data.get("Config", {})
+        exposed_ports = config.get("ExposedPorts", {})
+        if "22/tcp" in exposed_ports or "22/udp" in exposed_ports:
+            return [
+                AuditResult(
+                    rule_id="EXPOSED_SSH_PORT",
+                    severity="WARNING",
+                    message="Port 22 (SSH) is exposed. Running SSH in containers is usually an anti-pattern."
+                )
+            ]
+        return []
+
+    def _check_apk_cache(self) -> list[AuditResult]:
+        """APK_NO_CACHE — warning if apk add is used without --no-cache."""
+        results: list[AuditResult] = []
+        reversed_history = list(reversed(self.history))
+        for i, entry in enumerate(reversed_history):
+            created_by: str = entry.get("CreatedBy", "")
+            if "apk add" in created_by and "--no-cache" not in created_by:
+                results.append(
+                    AuditResult(
+                        rule_id="APK_NO_CACHE",
+                        severity="WARNING",
+                        message=f"Layer {i} uses 'apk add' without '--no-cache', inflating image size.",
+                        layer_index=i,
+                    )
+                )
+        return results
+
+    def _check_pip_cache(self) -> list[AuditResult]:
+        """PIP_NO_CACHE_DIR — warning if pip install is used without --no-cache-dir."""
+        results: list[AuditResult] = []
+        reversed_history = list(reversed(self.history))
+        for i, entry in enumerate(reversed_history):
+            created_by: str = entry.get("CreatedBy", "")
+            if "pip install" in created_by and "--no-cache-dir" not in created_by:
+                results.append(
+                    AuditResult(
+                        rule_id="PIP_NO_CACHE_DIR",
+                        severity="WARNING",
+                        message=f"Layer {i} uses 'pip install' without '--no-cache-dir', inflating image size.",
+                        layer_index=i,
+                    )
+                )
+        return results

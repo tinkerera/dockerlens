@@ -13,20 +13,44 @@
 ## Installation
 
 ```bash
-pip install dockerlens
+pip install dockerlens-py
 ```
 
 Requires Python 3.9+ and a running Docker daemon (for image inspection, not for tests).
 
 ---
 
-## Quick Start
+## CLI Usage
+
+`dockerlens` now provides a command-line interface for quick analysis:
+
+```bash
+# Analyze an image (prints rich tables to terminal)
+dockerlens analyze nginx:latest
+
+# Analyze an image directly from Docker Hub without pulling it locally!
+dockerlens analyze --remote nginx:latest
+
+# Export analysis as JSON, Markdown, or HTML
+dockerlens analyze nginx:latest --format markdown > report.md
+dockerlens analyze nginx:latest --format json > report.json
+
+# Compare two images
+dockerlens diff nginx:1.24 nginx:latest
+```
+
+---
+
+## Quick Start (Python API)
 
 ```python
 from dockerlens import ImageAnalyzer
 
-# Analyze an image
+# Analyze an image (local)
 analyzer = ImageAnalyzer("nginx:latest")
+
+# Analyze an image directly from remote registry (daemonless)
+remote_analyzer = ImageAnalyzer("nginx:latest", remote=True)
 
 # Inspect layers
 for layer in analyzer.layers():
@@ -54,9 +78,9 @@ analyzer.print_diff("nginx:1.24")
 
 ## API Reference
 
-### `ImageAnalyzer(image, docker_client=None)`
+### `ImageAnalyzer(image, docker_client=None, remote=False)`
 
-Main entry point. Pass an image name/tag (e.g. `"nginx:latest"`) and optionally a pre-configured `docker.DockerClient`.
+Main entry point. Pass an image name/tag (e.g. `"nginx:latest"`). If `remote=True`, it will fetch metadata directly from Docker Hub via the HTTP API, requiring no local Docker daemon!
 
 | Method | Returns | Description |
 |---|---|---|
@@ -80,6 +104,7 @@ Main entry point. Pass an image name/tag (e.g. `"nginx:latest"`) and optionally 
 - **`DockerLensError`** — base exception
 - **`DockerNotAvailable`** — Docker daemon unreachable
 - **`ImageNotFound`** — image not present locally
+- **`RemoteRegistryError`** — network or registry error when fetching via `--remote`
 
 ---
 
@@ -94,6 +119,28 @@ Main entry point. Pass an image name/tag (e.g. `"nginx:latest"`) and optionally 
 | `ADD_INSTEAD_OF_COPY` | INFO | `ADD` used instead of `COPY` (implicit tar extraction / URL fetch) |
 | `SECRET_PATTERN` | ERROR | Environment variable name matches `PASSWORD`, `SECRET`, `API_KEY`, or `TOKEN` |
 | `MANY_LAYERS` | INFO | Image has more than 20 layers |
+| `CURL_BASH_PATTERN` | WARNING | `curl` or `wget` piped to `bash`/`sh` |
+| `EXPOSED_SSH_PORT` | WARNING | SSH port 22 is exposed |
+| `APK_NO_CACHE` | WARNING | `apk add` used without `--no-cache` |
+| `PIP_NO_CACHE_DIR` | WARNING | `pip install` used without `--no-cache-dir` |
+
+---
+
+## CI/CD Integration (GitHub Actions)
+
+You can easily integrate `dockerlens` into your CI pipelines to generate Markdown step summaries.
+
+```yaml
+jobs:
+  analyze-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dockerlens
+        run: pip install dockerlens-py
+        
+      - name: Analyze Image
+        run: dockerlens analyze my-app:latest --format markdown >> $GITHUB_STEP_SUMMARY
+```
 
 ---
 

@@ -149,6 +149,42 @@ class TestImageReport:
         parsed = json.loads(json_str)
         assert parsed == report.to_dict()
 
+    def test_to_markdown(self) -> None:
+        report = ImageReport(
+            image_name="test:v1",
+            image_id="sha256:abc",
+            total_size_bytes=1000,
+            layers=[
+                Layer(
+                    index=0,
+                    digest="sha256:aaa",
+                    size_bytes=1000,
+                    command="CMD test",
+                    created_at="2024-01-01T00:00:00+00:00",
+                ),
+            ],
+            audit_results=[
+                AuditResult(rule_id="NO_USER", severity="WARNING", message="No user", layer_index=0),
+            ],
+        )
+        md = report.to_markdown()
+        assert "# Image Report: `test:v1`" in md
+        assert "1000 bytes" in md
+        assert "| **WARNING** | `NO_USER` | No user | 0 |" in md
+        assert "| 0 | 1000 B | `CMD test` |" in md
+
+    def test_to_html(self) -> None:
+        report = ImageReport(
+            image_name="test:v1",
+            image_id="sha256:abc",
+            total_size_bytes=1000,
+            layers=[],
+            audit_results=[],
+        )
+        html = report.to_html()
+        assert "<h1>Image Report: <code>test:v1</code></h1>" in html
+        assert "No issues found! ✅" in html
+
     def test_audit_result_with_layer_index(self) -> None:
         result = AuditResult(
             rule_id="LARGE_LAYER",
