@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from dockerlens.cli import main
 from dockerlens.exceptions import DockerLensError
 
@@ -24,7 +24,9 @@ def test_cli_analyze_text(mock_analyzer_class: MagicMock) -> None:
 
 
 @patch("dockerlens.cli.ImageAnalyzer")
-def test_cli_analyze_json(mock_analyzer_class: MagicMock, capsys: pytest.CaptureFixture[str]) -> None:
+def test_cli_analyze_json(
+    mock_analyzer_class: MagicMock, capsys: pytest.CaptureFixture[str]
+) -> None:
     mock_analyzer = MagicMock()
     mock_report = MagicMock()
     mock_report.to_json.return_value = '{"test": "json"}'
@@ -37,7 +39,7 @@ def test_cli_analyze_json(mock_analyzer_class: MagicMock, capsys: pytest.Capture
     mock_analyzer_class.assert_called_once_with("nginx:latest", remote=False)
     mock_analyzer.report.assert_called_once()
     mock_report.to_json.assert_called_once()
-    
+
     captured = capsys.readouterr()
     assert '{"test": "json"}' in captured.out
 
@@ -68,7 +70,9 @@ def test_cli_diff(mock_analyzer_class: MagicMock) -> None:
 
 
 @patch("dockerlens.cli.ImageAnalyzer")
-def test_cli_handles_error(mock_analyzer_class: MagicMock, capsys: pytest.CaptureFixture[str]) -> None:
+def test_cli_handles_error(
+    mock_analyzer_class: MagicMock, capsys: pytest.CaptureFixture[str]
+) -> None:
     mock_analyzer_class.side_effect = DockerLensError("Image not found")
 
     exit_code = main(["analyze", "nonexistent:latest"])

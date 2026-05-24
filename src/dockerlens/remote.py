@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import json
-import urllib.request
 import urllib.error
+import urllib.request
 from typing import Any
 
 from dockerlens.exceptions import RemoteRegistryError
 
 
-def fetch_remote_image_data(image_ref: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def fetch_remote_image_data(
+    image_ref: str,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Fetch image metadata directly from Docker Hub without pulling it.
 
     Args:
@@ -45,9 +47,9 @@ def fetch_remote_image_data(image_ref: str) -> tuple[dict[str, Any], list[dict[s
             "Accept",
             "application/vnd.docker.distribution.manifest.v2+json, "
             "application/vnd.oci.image.manifest.v1+json, "
-            "application/vnd.docker.distribution.manifest.list.v2+json"
+            "application/vnd.docker.distribution.manifest.list.v2+json",
         )
-        
+
         with urllib.request.urlopen(req) as response:
             manifest = json.loads(response.read().decode())
 
@@ -56,19 +58,24 @@ def fetch_remote_image_data(image_ref: str) -> tuple[dict[str, Any], list[dict[s
             chosen_digest = None
             for m in manifest["manifests"]:
                 platform = m.get("platform", {})
-                if platform.get("os") == "linux" and platform.get("architecture") in ["amd64", "arm64"]:
+                if platform.get("os") == "linux" and platform.get("architecture") in [
+                    "amd64",
+                    "arm64",
+                ]:
                     chosen_digest = m["digest"]
                     break
             if not chosen_digest:
                 chosen_digest = manifest["manifests"][0]["digest"]
-                
+
             # Fetch the actual manifest
-            req = urllib.request.Request(f"https://registry-1.docker.io/v2/{repo}/manifests/{chosen_digest}")
+            req = urllib.request.Request(
+                f"https://registry-1.docker.io/v2/{repo}/manifests/{chosen_digest}"
+            )
             req.add_header("Authorization", f"Bearer {token}")
             req.add_header(
                 "Accept",
                 "application/vnd.docker.distribution.manifest.v2+json, "
-                "application/vnd.oci.image.manifest.v1+json"
+                "application/vnd.oci.image.manifest.v1+json",
             )
             with urllib.request.urlopen(req) as response:
                 manifest = json.loads(response.read().decode())
@@ -76,8 +83,10 @@ def fetch_remote_image_data(image_ref: str) -> tuple[dict[str, Any], list[dict[s
         # Extract config digest and layer sizes
         config_digest = manifest.get("config", {}).get("digest")
         if not config_digest:
-            raise RemoteRegistryError(f"Could not find config digest for image {image_ref!r}")
-            
+            raise RemoteRegistryError(
+                f"Could not find config digest for image {image_ref!r}"
+            )
+
         layer_sizes = [layer.get("size", 0) for layer in manifest.get("layers", [])]
 
         # 3. Fetch the configuration blob
@@ -98,25 +107,29 @@ def fetch_remote_image_data(image_ref: str) -> tuple[dict[str, Any], list[dict[s
 
         # Remote history is base-to-top. Local history() is top-to-base (newest first).
         raw_history = config_blob.get("history", [])
-        
+
         # We need to map the flat layer_sizes array to history entries.
         # History entries with empty_layer=False consume one layer_size.
         layer_idx = 0
         translated_history = []
-        
+
         for entry in raw_history:
             size = 0
             is_empty = entry.get("empty_layer", False)
             if not is_empty and layer_idx < len(layer_sizes):
                 size = layer_sizes[layer_idx]
                 layer_idx += 1
-                
-            translated_history.append({
-                "CreatedBy": entry.get("created_by", ""),
-                "Size": size,
-                "Created": entry.get("created", ""),
-                "Id": "<missing>" if is_empty else "sha256:unknown", # exact ID doesn't matter for audit
-            })
+
+            translated_history.append(
+                {
+                    "CreatedBy": entry.get("created_by", ""),
+                    "Size": size,
+                    "Created": entry.get("created", ""),
+                    "Id": "<missing>"
+                    if is_empty
+                    else "sha256:unknown",  # exact ID doesn't matter for audit
+                }
+            )
 
         # Reverse to make it newest-first
         translated_history.reverse()
@@ -125,7 +138,9 @@ def fetch_remote_image_data(image_ref: str) -> tuple[dict[str, Any], list[dict[s
 
     except urllib.error.HTTPError as e:
         if e.code in (401, 404):
-            raise RemoteRegistryError(f"Image {image_ref!r} not found on Docker Hub.") from e
+            raise RemoteRegistryError(
+                f"Image {image_ref!r} not found on Docker Hub."
+            ) from e
         raise RemoteRegistryError(f"Registry HTTP error: {e}") from e
     except Exception as e:
         raise RemoteRegistryError(f"Failed to fetch remote image data: {e}") from e

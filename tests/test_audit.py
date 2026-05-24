@@ -73,8 +73,7 @@ class TestAptCache:
         history = [
             {
                 "CreatedBy": (
-                    "/bin/sh -c apt-get install -y curl"
-                    " && rm -rf /var/lib/apt/lists/*"
+                    "/bin/sh -c apt-get install -y curl && rm -rf /var/lib/apt/lists/*"
                 ),
                 "Size": 40_000_000,
                 "Created": 0,
@@ -279,7 +278,11 @@ class TestCurlBash:
 
     def test_fires_on_curl_bash(self) -> None:
         history = [
-            {"CreatedBy": "/bin/sh -c curl -sSL http://example.com | bash", "Size": 100, "Created": 0},
+            {
+                "CreatedBy": "/bin/sh -c curl -sSL http://example.com | bash",
+                "Size": 100,
+                "Created": 0,
+            },
         ]
         engine = _make_engine(history)
         results = engine._check_curl_bash()
@@ -301,7 +304,7 @@ class TestExposeSsh:
     def test_fires_on_expose_22(self) -> None:
         image_data = {
             "Config": {"ExposedPorts": {"22/tcp": {}}},
-            "RepoTags": ["app:latest"]
+            "RepoTags": ["app:latest"],
         }
         engine = AuditEngine(image_data, [])
         results = engine._check_expose_ssh()
@@ -311,7 +314,7 @@ class TestExposeSsh:
     def test_does_not_fire_on_other_ports(self) -> None:
         image_data = {
             "Config": {"ExposedPorts": {"80/tcp": {}}},
-            "RepoTags": ["app:latest"]
+            "RepoTags": ["app:latest"],
         }
         engine = AuditEngine(image_data, [])
         results = engine._check_expose_ssh()
@@ -332,7 +335,11 @@ class TestApkCache:
 
     def test_does_not_fire_with_no_cache(self) -> None:
         history = [
-            {"CreatedBy": "/bin/sh -c apk add --no-cache curl", "Size": 100, "Created": 0},
+            {
+                "CreatedBy": "/bin/sh -c apk add --no-cache curl",
+                "Size": 100,
+                "Created": 0,
+            },
         ]
         engine = _make_engine(history)
         results = engine._check_apk_cache()
@@ -353,7 +360,11 @@ class TestPipCache:
 
     def test_does_not_fire_with_no_cache_dir(self) -> None:
         history = [
-            {"CreatedBy": "/bin/sh -c pip install --no-cache-dir requests", "Size": 100, "Created": 0},
+            {
+                "CreatedBy": "/bin/sh -c pip install --no-cache-dir requests",
+                "Size": 100,
+                "Created": 0,
+            },
         ]
         engine = _make_engine(history)
         results = engine._check_pip_cache()

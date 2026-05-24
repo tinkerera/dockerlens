@@ -233,7 +233,9 @@ class AuditEngine:
         reversed_history = list(reversed(self.history))
         for i, entry in enumerate(reversed_history):
             created_by: str = entry.get("CreatedBy", "").lower()
-            if ("curl" in created_by or "wget" in created_by) and ("| bash" in created_by or "| sh" in created_by):
+            if ("curl" in created_by or "wget" in created_by) and (
+                "| bash" in created_by or "| sh" in created_by
+            ):
                 results.append(
                     AuditResult(
                         rule_id="CURL_BASH_PATTERN",
@@ -256,7 +258,10 @@ class AuditEngine:
                 AuditResult(
                     rule_id="EXPOSED_SSH_PORT",
                     severity="WARNING",
-                    message="Port 22 (SSH) is exposed. Running SSH in containers is usually an anti-pattern."
+                    message=(
+                        "Port 22 (SSH) is exposed. "
+                        "Running SSH in containers is usually an anti-pattern."
+                    ),
                 )
             ]
         return []
@@ -272,7 +277,10 @@ class AuditEngine:
                     AuditResult(
                         rule_id="APK_NO_CACHE",
                         severity="WARNING",
-                        message=f"Layer {i} uses 'apk add' without '--no-cache', inflating image size.",
+                        message=(
+                            f"Layer {i} uses 'apk add' without '--no-cache', "
+                            f"inflating image size."
+                        ),
                         layer_index=i,
                     )
                 )
@@ -289,7 +297,10 @@ class AuditEngine:
                     AuditResult(
                         rule_id="PIP_NO_CACHE_DIR",
                         severity="WARNING",
-                        message=f"Layer {i} uses 'pip install' without '--no-cache-dir', inflating image size.",
+                        message=(
+                            f"Layer {i} uses 'pip install' without '--no-cache-dir', "
+                            f"inflating image size."
+                        ),
                         layer_index=i,
                     )
                 )

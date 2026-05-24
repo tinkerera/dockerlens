@@ -65,7 +65,8 @@ class ImageAnalyzer:
                 raise ImageNotFound(image) from exc
             except docker.errors.DockerException as exc:
                 raise DockerNotAvailable(
-                    f"Lost connection to the Docker daemon while fetching image {image!r}."
+                    f"Lost connection to the Docker daemon while "
+                    f"fetching image {image!r}."
                 ) from exc
 
             # Cache inspect data and history
@@ -179,8 +180,11 @@ class ImageAnalyzer:
             DockerLensError: If called on a remotely fetched image.
         """
         if self._remote:
-            raise RemoteRegistryError("diff command requires local images. Remote scanning is only for metadata/audit.")
-            
+            raise RemoteRegistryError(
+                "diff command requires local images. "
+                "Remote scanning is only for metadata/audit."
+            )
+
         try:
             other_image = self._client.images.get(other)
         except docker.errors.ImageNotFound as exc:

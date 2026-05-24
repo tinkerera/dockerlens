@@ -164,7 +164,12 @@ class TestImageReport:
                 ),
             ],
             audit_results=[
-                AuditResult(rule_id="NO_USER", severity="WARNING", message="No user", layer_index=0),
+                AuditResult(
+                    rule_id="NO_USER",
+                    severity="WARNING",
+                    message="No user",
+                    layer_index=0,
+                ),
             ],
         )
         md = report.to_markdown()
